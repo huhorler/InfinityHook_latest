@@ -308,3 +308,8 @@ __int64 __fastcall EtwpUpdatePmcCounters(
 [1] Fun With Another PG-Compliant Hook https://revers.engineering/fun-with-pg-compliant-hook/
 
 [2] 仿照EAC的全局异常Hook https://bbs.kanxue.com/thread-278475.htm
+
+## 常见问题
+
+- **Scanning Notes 返回 `{"code":"4001","details":{"errorInfo":"BlockingDetection Found","innerError":...}}` 是什么含义？**  
+  这是外部安全/内容扫描流程返回的状态码，表示扫描器检测到可能被拦截的行为（通常是内核驱动的修改/HOOK 特征）并主动阻断。它不是驱动自身的 NTSTATUS，而是扫描产品的提示。若在加载或上传本项目产物时出现该提示，建议在隔离的测试环境中操作，确保处于测试签名模式或已将驱动加入可信名单，并关闭或为相关防护添加例外后再重试。

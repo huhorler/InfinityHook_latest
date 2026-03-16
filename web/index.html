@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>InfinityHook – ETW Syscall Hook Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ── Header ────────────────────────────────────────────────────────────── -->
+<header>
+  <a href="#" class="logo">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#58a6ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+    </svg>
+    InfinityHook
+  </a>
+  <nav>
+    <a href="#overview">Overview</a>
+    <a href="#how-it-works">How It Works</a>
+    <a href="#syscalls">Syscalls</a>
+    <a href="#usage">Usage</a>
+    <a href="#faq">FAQ</a>
+  </nav>
+</header>
+
+<!-- ── Hero ──────────────────────────────────────────────────────────────── -->
+<div class="hero" id="overview">
+  <div class="container">
+    <div class="badge">Windows Kernel · ETW · PatchGuard-safe</div>
+    <h1>Intercept <span>every syscall</span><br/>without triggering PatchGuard</h1>
+    <p>
+      InfinityHook leverages the <strong>HalPrivateDispatchTable.HalCollectPmcCounters</strong>
+      pointer inside the Windows ETW subsystem to intercept system calls at the kernel level—
+      fully compatible with Windows 11 and PatchGuard (PG) enabled.
+    </p>
+    <div class="btn-row">
+      <a href="#how-it-works" class="btn btn-primary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 8 16 12 12 16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        How It Works
+      </a>
+      <a href="https://github.com/huhorler/InfinityHook_latest" target="_blank" rel="noopener" class="btn btn-secondary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        View on GitHub
+      </a>
+    </div>
+  </div>
+</div>
+
+<hr class="divider" />
+
+<!-- ── Stats ─────────────────────────────────────────────────────────────── -->
+<section>
+  <div class="container">
+    <div class="status-bar">
+      <div class="stat">
+        <span class="stat-label">Hooked Syscalls</span>
+        <span class="stat-value green" data-count="6">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Blocked Syscalls</span>
+        <span class="stat-value red" data-count="2">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Pass-through</span>
+        <span class="stat-value blue" data-count="2">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Hook ID (PMC)</span>
+        <span class="stat-value" style="font-size:1.1rem">0xF33</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">PatchGuard Safe</span>
+        <span class="stat-value green">✓ YES</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Win11 Compatible</span>
+        <span class="stat-value green">✓ YES</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── How It Works ───────────────────────────────────────────────────────── -->
+<section id="how-it-works">
+  <div class="container">
+    <div class="section-title">How It Works</div>
+    <div class="section-sub">The call chain from a user-mode syscall to our hook callback</div>
+
+    <!-- Call flow -->
+    <div class="flow">
+      <div class="flow-box">User syscall</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box">KiSystemCall64</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box">EtwTraceSiloKernelEvent</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box">EtwpLogKernelEvent</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box">EtwpReserveWithPmcCounters</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box highlight">HalCollectPmcCounters ← <strong>our hook</strong></div>
+    </div>
+
+    <!-- Step cards -->
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h4>Steal the pointer</h4>
+          <p>Locate <code>HalPrivateDispatchTable</code> inside <em>ntoskrnl.exe</em>'s <code>.data</code> section and overwrite the <code>HalCollectPmcCounters</code> slot with our callback. This does <em>not</em> trigger PatchGuard because the dispatch table is writable by design.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h4>Enable NT Kernel Logger</h4>
+          <p>Call <code>ZwTraceControl</code> to start the NT Kernel Logger session, which activates the ETW syscall-tracing path that leads to our hook.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h4>Configure PMC counters</h4>
+          <p>Use <code>ZwSetSystemInformation(SystemPerformanceTraceInformation, …)</code> to attach a PMC counter and set the syscall hook-ID (<code>0xF33</code>). This forces <code>EtwpReserveWithPmcCounters</code> to be reached on every syscall event.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h4>Locate the syscall routine on the stack</h4>
+          <p>Inside the callback, walk the kernel stack and search for the magic number pattern left by <code>EtwpReserveTraceBuffer</code> to find the pointer to the original syscall routine.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <h4>Replace the target syscall</h4>
+          <p>Overwrite the located stack slot with your own function pointer. The original pointer is saved so you can forward calls to preserve normal system behaviour.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── Architecture cards ─────────────────────────────────────────────────── -->
+<section>
+  <div class="container">
+    <div class="section-title">Architecture</div>
+    <div class="section-sub">Key components of the driver</div>
+    <div class="cards">
+      <div class="card">
+        <div class="card-icon">🔌</div>
+        <h3>EtwInitializer</h3>
+        <p>Configures the NT Kernel Logger and PMC counters. Calls <code>open_pmc_counter()</code> to reach the ETW hot path on every syscall.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🎣</div>
+        <h3>EtwHookManager</h3>
+        <p>Installs and removes hooks. Maintains a table of (syscall-id → handler) pairs and dispatches callbacks from the ETW context.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🛠</div>
+        <h3>EtwHookUtils</h3>
+        <p>Pattern-scan helpers for <code>HalPrivateDispatchTable</code> and the stack magic-number search used to locate the live syscall pointer.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">📋</div>
+        <h3>SysInfoManager</h3>
+        <p>Wraps <code>ZwQuerySystemInformation</code> to expose <code>EtwpDebuggerData</code> and resolve the logger-id needed for PMC configuration.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🗂</div>
+        <h3>kstl helpers</h3>
+        <p>Minimal kernel-mode STL shim — <code>kalloc&lt;T&gt;</code>, pool wrappers, and logging macros used throughout the driver.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🛡</div>
+        <h3>PatchGuard Safety</h3>
+        <p>All modifications target <em>writable</em> data pointers in <code>.data</code> sections. No code patching, no SSDT modification—PG remains silent.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── Syscall table ───────────────────────────────────────────────────────── -->
+<section id="syscalls">
+  <div class="container">
+    <div class="section-title">Monitored System Calls</div>
+    <div class="section-sub">Configurable list of intercepted, passed-through and blocked syscalls</div>
+
+    <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem;align-items:center">
+      <input id="filter-input" type="text" placeholder="Search by name or ID…"
+        style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:.45rem .85rem;font-size:.88rem;min-width:220px;outline:none" />
+      <select id="filter-status"
+        style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:.45rem .85rem;font-size:.88rem;outline:none">
+        <option value="">All statuses</option>
+        <option value="hooked">Hooked</option>
+        <option value="passthru">Pass-through</option>
+        <option value="blocked">Blocked</option>
+      </select>
+      <span id="result-count" style="color:var(--muted);font-size:.82rem;margin-left:auto"></span>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Syscall ID</th>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody id="syscall-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── Usage / Code sample ────────────────────────────────────────────────── -->
+<section id="usage">
+  <div class="container">
+    <div class="section-title">Usage</div>
+    <div class="section-sub">Hooking a system call with InfinityHook in three steps</div>
+
+    <p style="color:var(--muted);margin-bottom:1.2rem;font-size:.9rem">
+      The snippet below shows how to intercept <code>NtOpenProcess</code>.
+      Place this in your driver's <code>DriverEntry</code> after calling
+      <code>EtwInitializer::init()</code>.
+    </p>
+
+    <div class="code-wrap" style="margin-bottom:1.5rem">
+      <button class="copy-btn">Copy</button>
+      <pre><span class="cm">// 1. Define your hook function (same signature as the original)</span>
+<span class="ty">NTSTATUS</span> <span class="fn">HookNtOpenProcess</span>(
+    <span class="ty">PHANDLE</span>            ProcessHandle,
+    <span class="ty">ACCESS_MASK</span>        DesiredAccess,
+    <span class="ty">POBJECT_ATTRIBUTES</span> ObjectAttributes,
+    <span class="ty">PCLIENT_ID</span>         ClientId)
+{
+    <span class="cm">// Custom logic here – e.g. block access to protected processes</span>
+    <span class="kw">if</span> (IsProtectedProcess(ClientId))
+        <span class="kw">return</span> STATUS_ACCESS_DENIED;
+
+    <span class="cm">// Forward to the original syscall</span>
+    <span class="kw">return</span> <span class="fn">OriginalNtOpenProcess</span>(
+        ProcessHandle, DesiredAccess, ObjectAttributes, ClientId);
+}
+
+<span class="cm">// 2. Install the hook inside DriverEntry</span>
+<span class="ty">NTSTATUS</span> <span class="fn">DriverEntry</span>(<span class="ty">PDRIVER_OBJECT</span> DriverObject, <span class="ty">PUNICODE_STRING</span> RegistryPath)
+{
+    <span class="cm">// Initialise ETW + PMC</span>
+    <span class="fn">EtwInitializer::init</span>();
+
+    <span class="cm">// Register hook: syscall index 0x0025 == NtOpenProcess</span>
+    <span class="fn">EtwHookManager::installHook</span>(
+        <span class="num">0x0025</span>,
+        reinterpret_cast&lt;<span class="ty">PVOID</span>&gt;(&amp;<span class="fn">HookNtOpenProcess</span>),
+        reinterpret_cast&lt;<span class="ty">PVOID</span> *&gt;(&amp;<span class="fn">OriginalNtOpenProcess</span>));
+
+    DriverObject-&gt;DriverUnload = <span class="fn">DriverUnload</span>;
+    <span class="kw">return</span> STATUS_SUCCESS;
+}
+
+<span class="cm">// 3. Remove the hook on unload</span>
+<span class="ty">VOID</span> <span class="fn">DriverUnload</span>(<span class="ty">PDRIVER_OBJECT</span> DriverObject)
+{
+    <span class="fn">EtwHookManager::removeAllHooks</span>();
+    <span class="fn">EtwInitializer::shutdown</span>();
+}</pre>
+    </div>
+
+    <details>
+      <summary>Build requirements</summary>
+      <div class="details-body">
+        <ul style="padding-left:1.2rem;line-height:2">
+          <li>Windows Driver Kit (WDK) 10.0.22621 or later</li>
+          <li>Visual Studio 2022 with <em>Desktop development with C++</em> and the WDK extension</li>
+          <li>Target OS: Windows 10 21H2+ / Windows 11 (all builds)</li>
+          <li>Test-signing enabled or a valid EV code-signing certificate for production use</li>
+        </ul>
+      </div>
+    </details>
+
+    <details>
+      <summary>Enabling test signing</summary>
+      <div class="details-body">
+        <div class="code-wrap" style="margin-top:.5rem">
+          <button class="copy-btn">Copy</button>
+          <pre><span class="cm"># Run in an elevated Command Prompt and reboot</span>
+bcdedit /set testsigning on</pre>
+        </div>
+      </div>
+    </details>
+
+    <details>
+      <summary>Known limitations</summary>
+      <div class="details-body">
+        <ul style="padding-left:1.2rem;line-height:2">
+          <li>Direct kernel NtXxx calls (bypassing the syscall stub) are <em>not</em> intercepted.</li>
+          <li><code>EtwpMaxPmcCounter</code> may be 1 on some VMs; the driver attempts to patch this value.</li>
+          <li>Anti-cheat software (EAC, BE) that also hooks ETW may conflict.</li>
+        </ul>
+      </div>
+    </details>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── FAQ ────────────────────────────────────────────────────────────────── -->
+<section id="faq">
+  <div class="container">
+    <div class="section-title">FAQ</div>
+    <div class="section-sub">Common questions about the ETW hook technique</div>
+
+    <details>
+      <summary>Why not use SSDT hooking?</summary>
+      <div class="details-body">
+        Modifying the System Service Descriptor Table (SSDT) is detected and reverted by
+        PatchGuard within seconds on modern Windows. The ETW pointer-swap technique targets
+        a <em>writable</em> data structure and is not monitored by PG.
+      </div>
+    </details>
+
+    <details>
+      <summary>Can this be detected by anti-cheat software?</summary>
+      <div class="details-body">
+        Kernel-level anti-cheat engines (EAC, BattlEye) perform their own integrity scans.
+        While the hook itself is PG-safe, a sufficiently advanced AC may detect the
+        HalPrivateDispatchTable modification or the abnormal PMC configuration.
+      </div>
+    </details>
+
+    <details>
+      <summary>Does it work on ARM64 Windows?</summary>
+      <div class="details-body">
+        The current implementation targets x86-64 only. ARM64 has a different syscall path
+        and a different HAL dispatch table layout; porting is theoretically possible but
+        not yet implemented.
+      </div>
+    </details>
+
+    <details>
+      <summary>What is hook-ID 0xF33?</summary>
+      <div class="details-body">
+        <code>0xF33</code> is the ETW kernel-event hook-ID for <em>syscall entry</em> events.
+        Setting this ID via <code>EtwpUpdatePmcEvents</code> tells the ETW subsystem to invoke
+        <code>EtwpReserveWithPmcCounters</code> on every syscall, which is exactly the
+        code path that calls <code>HalCollectPmcCounters</code>—our hook point.
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ── Footer ─────────────────────────────────────────────────────────────── -->
+<footer>
+  <div class="container">
+    <p>
+      InfinityHook &nbsp;·&nbsp;
+      <a href="https://github.com/huhorler/InfinityHook_latest" target="_blank" rel="noopener">GitHub</a>
+      &nbsp;·&nbsp;
+      <a href="https://revers.engineering/fun-with-pg-compliant-hook/" target="_blank" rel="noopener">Reference Article</a>
+      &nbsp;·&nbsp;
+      <span style="color:var(--warn)">For educational purposes only. Use responsibly.</span>
+    </p>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
